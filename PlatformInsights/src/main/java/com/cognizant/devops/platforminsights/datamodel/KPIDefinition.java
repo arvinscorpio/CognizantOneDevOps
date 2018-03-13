@@ -46,7 +46,9 @@ public class KPIDefinition implements Serializable{
     private String groupByFieldName;
     private String groupByField;
     private String averageField;
-    private String esquery;
+    private String calculationField;
+    
+	private String esquery;
     private String esResource;
     
 	public Integer getKpiID() {
@@ -147,6 +149,12 @@ public class KPIDefinition implements Serializable{
 	}
 	public void setAverageField(String averageField) {
 		this.averageField = averageField;
+	}
+	public String getCalculationField() {
+		return calculationField;
+	}
+	public void setCalculationField(String calculationField) {
+		this.calculationField = calculationField;
 	}
 	public String getVector() {
 		return vector;

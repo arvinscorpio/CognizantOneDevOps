@@ -36,7 +36,6 @@ public class InsightsSumFunction implements PairFunction<Tuple2<String, Tuple2<L
     public Tuple2<String, Long> call(Tuple2<String, Tuple2<Long, Integer>> tuple) {
     	Tuple2<Long, Integer> val = tuple._2;
         Long total = val._1;
-        Integer count = val._2;
         Tuple2<String, Long> averagePair = new Tuple2<String, Long>(tuple._1, total);
         return averagePair;
     }

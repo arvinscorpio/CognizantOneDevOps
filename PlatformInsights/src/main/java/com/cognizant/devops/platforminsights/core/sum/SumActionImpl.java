@@ -48,15 +48,15 @@ public class SumActionImpl extends BaseActionImpl {
 				log.debug("GroupBy found true. Entering GroupBy method");
 				JavaRDD<Map<String, Object>> data =  esRDD.values();
 				String groupByField = kpiDefinition.getGroupByField(); //Lamda Function fails if you try to set value directly. Serialization error
-				String avgField = kpiDefinition.getAverageField();
+				String avgField = kpiDefinition.getCalculationField();
 				JavaPairRDD<String, Tuple2<Long, Integer>> valueCount = data.mapToPair( x -> new Tuple2<String, Long>(x.get(groupByField).toString(),
 						Long.valueOf(x.get(avgField).toString()))).mapValues(value -> new Tuple2<Long, Integer>(value,1));
 				JavaPairRDD<String, Tuple2<Long, Integer>> reducedCount = valueCount.reduceByKey((tuple1,tuple2) ->  new Tuple2<Long, Integer>(tuple1._1 + tuple2._1, tuple1._2 + tuple2._2));
 				
 				//calculate average
-		        JavaPairRDD<String, Long> averagePair = reducedCount.mapToPair(new InsightsSumFunction());
+		        JavaPairRDD<String, Long> sumPair = reducedCount.mapToPair(new InsightsSumFunction());
 		        //print averageByKey
-		        Map<String, Long> result =  averagePair.collectAsMap();
+		        Map<String, Long> result =  sumPair.collectAsMap();
 		       //HashMap<String, Object> resultMap
 		        Set<String> resultKeys = result.keySet();
 		        List<Map<String, Object>> resultList = new ArrayList<>();
@@ -75,8 +75,8 @@ public class SumActionImpl extends BaseActionImpl {
 		        saveResult(resultMap);
 			}
 		} catch (Exception e) {
-			log.error("Average calculation job failed for kpiID - "+kpiDefinition.getKpiID(), e);
-			throw new InsightsSparkJobFailedException("Average calculation job failed for kpiID - "+kpiDefinition.getKpiID(), e);
+			log.error("Sum calculation job failed for kpiID - "+kpiDefinition.getKpiID(), e);
+			throw new InsightsSparkJobFailedException("Sum calculation job failed for kpiID - "+kpiDefinition.getKpiID(), e);
 		}
 		return null;
 	}

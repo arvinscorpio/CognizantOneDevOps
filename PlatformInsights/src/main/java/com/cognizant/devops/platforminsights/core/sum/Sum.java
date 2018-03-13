@@ -30,7 +30,7 @@ public class Sum implements Serializable{
 	public Long total_;
 	public Long num_;
 	public Long avg() {
-		if(total_ == 0 || num_ == 0){
+		if(total_ == 0){
 			return 0l;
 		}
 		return total_;

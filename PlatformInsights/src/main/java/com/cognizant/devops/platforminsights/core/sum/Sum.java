@@ -13,8 +13,26 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package com.cognizant.devops.platformcommons.core.enums;
+package com.cognizant.devops.platforminsights.core.sum;
 
-public enum ExecutionActions {
-	AVERAGE, COUNT, MINMAX, SUM
+import java.io.Serializable;
+
+public class Sum implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -4941480846446243329L;
+	
+	public Sum(Long total, Long num) {
+		total_ = total;
+		num_ = num;
+	}
+	public Long total_;
+	public Long num_;
+	public Long avg() {
+		if(total_ == 0 || num_ == 0){
+			return 0l;
+		}
+		return total_;
+	}
 }

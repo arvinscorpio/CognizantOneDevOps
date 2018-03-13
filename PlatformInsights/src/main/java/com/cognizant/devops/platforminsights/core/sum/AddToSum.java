@@ -13,8 +13,20 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package com.cognizant.devops.platformcommons.core.enums;
+package com.cognizant.devops.platforminsights.core.sum;
 
-public enum ExecutionActions {
-	AVERAGE, COUNT, MINMAX, SUM
+import org.apache.spark.api.java.function.Function2;
+
+public class AddToSum implements Function2<Sum, Long, Sum> {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 9101790569868798420L;
+
+	@Override
+	public Sum call(Sum a, Long x) {
+		a.total_ += x.longValue();
+		a.num_ += 1;
+		return a;
+	}
 }

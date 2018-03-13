@@ -43,6 +43,9 @@ public abstract class BaseActionImpl {
 		if(ExecutionActions.AVERAGE == kpiDefinition.getAction()){
 			buildSparkJob(kpiDefinition);
 		}
+		else if(ExecutionActions.SUM == kpiDefinition.getAction()){
+			buildSparkJob(kpiDefinition);
+		}
 		//Map<String, Object> result = execute();
 		//saveResult(result);
 	}

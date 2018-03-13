@@ -25,6 +25,7 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
 import com.cognizant.devops.insightsemail.job.AlertEmailJobExecutor;
+import com.cognizant.devops.platformcommons.config.ApplicationConfigCache;
 import com.cognizant.devops.platformcommons.config.ApplicationConfigProvider;
 import com.cognizant.devops.platformcommons.core.enums.ExecutionActions;
 import com.cognizant.devops.platformcommons.core.util.InsightsUtils;
@@ -33,6 +34,7 @@ import com.cognizant.devops.platforminsights.core.count.CountActionImpl;
 import com.cognizant.devops.platforminsights.core.job.config.SparkJobConfigHandler;
 import com.cognizant.devops.platforminsights.core.job.config.SparkJobConfiguration;
 import com.cognizant.devops.platforminsights.core.minmax.MinMaxActionImpl;
+import com.cognizant.devops.platforminsights.core.sum.SumActionImpl;
 import com.cognizant.devops.platforminsights.datamodel.KPIDefinition;
 import com.cognizant.devops.platforminsights.exception.InsightsSparkJobFailedException;
 
@@ -106,6 +108,11 @@ public class SparkJobExecutor implements Job,Serializable{
 			BaseActionImpl impl = new MinMaxActionImpl(kpiDefinition);
 			impl.execute();
 		}
+		else if(ExecutionActions.SUM == kpiDefinition.getAction()){
+			log.debug("KPI action found as SUM");
+			BaseActionImpl impl = new SumActionImpl(kpiDefinition);
+			impl.execute();
+		}
 	}
 	
 	private boolean isJobScheduledToRun(Long lastRun, String jobSchedule) {
@@ -113,5 +120,5 @@ public class SparkJobExecutor implements Job,Serializable{
 		Long lastRunSinceDays = InsightsUtils.getDurationBetweenDatesInDays(lastRun);
 		return InsightsUtils.isAfterRange(jobSchedule, lastRunSinceDays);
 	}
-
+	
 }

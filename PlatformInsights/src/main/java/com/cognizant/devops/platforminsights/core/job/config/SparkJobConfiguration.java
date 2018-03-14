@@ -108,6 +108,7 @@ public class SparkJobConfiguration implements Serializable{
 		kpiDef.setGroupByFieldName(kpiDetails.get("groupByFieldName"));
 		kpiDef.setGroupByField(kpiDetails.get("groupByField"));
 		kpiDef.setAverageField(kpiDetails.get("averageField"));
+		kpiDef.setSumCalculationField(kpiDetails.get("sumCalculationField"));
 		kpiDef.setVector(kpiDetails.get("vector"));
 		kpiDef.setToolName(kpiDetails.get("toolName"));
 		kpiDef.setEsquery(kpiDetails.get("esquery"));

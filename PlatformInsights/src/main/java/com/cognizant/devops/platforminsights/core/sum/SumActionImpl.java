@@ -48,9 +48,9 @@ public class SumActionImpl extends BaseActionImpl {
 				log.debug("GroupBy found true. Entering GroupBy method");
 				JavaRDD<Map<String, Object>> data =  esRDD.values();
 				String groupByField = kpiDefinition.getGroupByField(); //Lamda Function fails if you try to set value directly. Serialization error
-				String avgField = kpiDefinition.getCalculationField();
+				String sumField = kpiDefinition.getSumCalculationField();
 				JavaPairRDD<String, Tuple2<Long, Integer>> valueCount = data.mapToPair( x -> new Tuple2<String, Long>(x.get(groupByField).toString(),
-						Long.valueOf(x.get(avgField).toString()))).mapValues(value -> new Tuple2<Long, Integer>(value,1));
+						Long.valueOf(x.get(sumField).toString()))).mapValues(value -> new Tuple2<Long, Integer>(value,1));
 				JavaPairRDD<String, Tuple2<Long, Integer>> reducedCount = valueCount.reduceByKey((tuple1,tuple2) ->  new Tuple2<Long, Integer>(tuple1._1 + tuple2._1, tuple1._2 + tuple2._2));
 				
 				//calculate average

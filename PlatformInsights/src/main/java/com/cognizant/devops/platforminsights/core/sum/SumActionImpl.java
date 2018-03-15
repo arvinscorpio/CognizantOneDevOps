@@ -41,7 +41,7 @@ public class SumActionImpl extends BaseActionImpl {
 
 	@Override
 	protected Map<String, Object> execute() throws InsightsSparkJobFailedException {
-		log.debug("Calculating KPI Average");
+		log.debug("Calculating KPI Sum");
 		
 		try {
 			if(kpiDefinition.isGroupBy()) {

@@ -67,7 +67,7 @@ public class SumActionImpl extends BaseActionImpl {
 		        }
 		        saveResult(resultList);
 			} else {
-				log.debug("GroupBy found false. Calculating KPI Average");
+				log.debug("GroupBy found false. Calculating KPI Sum");
 				JavaRDD<Long> map = esRDD.map(new ESMapFunction(kpiDefinition));
 		        Sum initial = new Sum(0l, 0l);
 		        Sum avgResult = map.aggregate(initial, new AddToSum(), new CombineSum());

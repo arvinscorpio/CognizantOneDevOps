@@ -89,73 +89,180 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 	private Map<String, List<InsightsInferenceDetail>> getSortedByVector(String schedule,List<InferenceResult> results) {
 
 		Map<String, List<InsightsInferenceDetail>> tempMap = new HashMap<>();
+		List<InferenceResultDetails> inferenceDetailList = null;
+		Set<String> uniqueGroupFieldNamesSet = new HashSet<>();
+		
+		boolean isGroupByFieldValAndComparisionKPI = checkIsGroupByFieldValAndComparisionKPI(results);
+		
+		if ( isGroupByFieldValAndComparisionKPI ){
+			inferenceDetailList = getInferenceDetailsList(results);
+			uniqueGroupFieldNamesSet = getUniqueGroupByFieldValuesArray(inferenceDetailList);
+			tempMap = getElementsByFieldValueResultMap(inferenceDetailList, uniqueGroupFieldNamesSet, schedule, isGroupByFieldValAndComparisionKPI);
+		} else {
 
-		for (InferenceResult inferenceResult : results) {
-			List<InferenceResultDetails> inferenceResultDetailsList = inferenceResult.getDetails();
-			InferenceResultDetails resultFirstData = inferenceResultDetailsList.get(0);
-				String trend = "No Change";
-				KPISentiment sentiment = KPISentiment.NEUTRAL;
-				Object[] values = new Object[2];
-				if (! resultFirstData.getIsComparisionKpi()) {
+			for (InferenceResult inferenceResult : results) {
+				List<InferenceResultDetails> inferenceResultDetailsList = inferenceResult.getDetails();
+				InferenceResultDetails resultFirstData = inferenceResultDetailsList.get(0);
+					String trend = "No Change";
+					KPISentiment sentiment = KPISentiment.NEUTRAL;
+					Object[] values = new Object[2];
+					if (! resultFirstData.getIsComparisionKpi()) {
 
-					if (resultFirstData.getIsGroupBy()) {
-						values[0] = resultFirstData.getGroupByFieldVal();
+						if (resultFirstData.getIsGroupBy()) {
+							values[0] = resultFirstData.getGroupByFieldVal();
+						} else {
+							values[0] = resultFirstData.getResult();
+						}
+						values[1] = resultFirstData.getResult();
+
 					} else {
+						if(inferenceResultDetailsList.size() < 2){
+							continue;
+						}
+						InferenceResultDetails result2 = inferenceResultDetailsList.get(1);
+
+						sentiment = getSentiment(result2.getResult(),
+								resultFirstData.getResult(),
+								resultFirstData.getExpectedTrend());
+
 						values[0] = resultFirstData.getResult();
+						values[1] = result2.getResult();
+
+						trend = getTrend(values[0],values[1]);
+
 					}
-					values[1] = resultFirstData.getResult();
-
-				} else {
-					if(inferenceResultDetailsList.size() < 2){
-						continue;
-					}
-					InferenceResultDetails result2 = inferenceResultDetailsList.get(1);
-
-					sentiment = getSentiment(result2.getResult(),
-							resultFirstData.getResult(),
-							resultFirstData.getExpectedTrend());
-
-					values[0] = resultFirstData.getResult();
-					values[1] = result2.getResult();
-
-					trend = getTrend(values[0],values[1]);
-
-				}
-				
-				Long kpiID = resultFirstData.getKpiID();
-				String inferenceName = resultFirstData.getName();
-				String action =  resultFirstData.getAction();
-				String jobSchedule = resultFirstData.getSchedule();
-				String resultOutputType = resultFirstData.getResultOutPutType();
-				boolean isComparison = resultFirstData.getIsComparisionKpi();
-				Date lastRunDate = new Date(resultFirstData.getResultTime());
-				String vector = resultFirstData.getVector();
-				
-				String inferenceText = getInferenceText(inferenceName,
-						vector,	kpiID, sentiment, schedule, values,
-						isComparison, resultOutputType);
-
-				
-				List<ResultSetModel> resultValues = new ArrayList<ResultSetModel>();
-				for (InferenceResultDetails details : inferenceResultDetailsList) {
-					ResultSetModel model = new ResultSetModel();
-					model.setValue(details.getResult());
-					model.setResultDate(new Date(details.getResultTime()));
-					resultValues.add(model);
-				}
-				Collections.reverse(resultValues);
-				List<InsightsInferenceDetail> detailsList = getInferenceDetails(inferenceName, sentiment, action, trend,
-						inferenceText, jobSchedule, lastRunDate, resultValues);
-				if (tempMap.get(vector) != null) {
-					tempMap.get(vector).addAll(detailsList);
-				} else {
-					tempMap.put(vector, detailsList);
-				}
-				//return tempMap;
+					
+					tempMap = getFinalResultMap(schedule, resultFirstData, sentiment, values, trend, inferenceResultDetailsList);
+					//return tempMap;
+			}
 		}
 			
 		return tempMap;
 
+	}
+	
+	private List<InferenceResultDetails> getInferenceDetailsList(List<InferenceResult> results){
+		List<InferenceResultDetails> inferenceResultDetails = null;
+		for (InferenceResult inferenceResult : results) {
+			int resultCheckFlag = 1;
+			inferenceResultDetails = inferenceResult.getDetails();
+			resultCheckFlag = 0;
+			if (resultCheckFlag == 0)
+				break;
+		} 
+		return inferenceResultDetails;
+	}
+	
+	private boolean checkIsGroupByFieldValAndComparisionKPI(List<InferenceResult> results){
+		InferenceResultDetails groupByFieldCheck = null;
+		List<InferenceResultDetails> inferenceResultDetailsCheck = null;
+		boolean isGroupByFieldValAndComparisionKPI = false;
+		
+		inferenceResultDetailsCheck = getInferenceDetailsList(results);		
+		groupByFieldCheck = inferenceResultDetailsCheck.get(0);
+			
+		if ( groupByFieldCheck.getIsGroupBy() && groupByFieldCheck.getIsComparisionKpi() ){
+			isGroupByFieldValAndComparisionKPI = true;
+		}
+		return isGroupByFieldValAndComparisionKPI;
+	}
+	
+	private Set<String> getUniqueGroupByFieldValuesArray(List<InferenceResultDetails>inferenceResultDetailsList){
+		ArrayList<String> groupFieldNamesArray = new ArrayList<>();
+		for(InferenceResultDetails result: inferenceResultDetailsList){
+			String resultGroupFieldName = result.getGroupByFieldVal();
+			groupFieldNamesArray.add(resultGroupFieldName);
+		}
+		Set<String> uniqueGroupFieldNames = new HashSet<>(groupFieldNamesArray);
+		return uniqueGroupFieldNames;
+	}
+	
+	private Map<String, List<InsightsInferenceDetail>> getElementsByFieldValueResultMap(List<InferenceResultDetails> inferenceDetailList, 
+			Set<String> uniqueGroupFieldNamesSet, String schedule, boolean isGroupByFieldValAndComparisionKPI){
+		
+		InferenceResultDetails resultFirstData = new InferenceResultDetails();
+		List<InferenceResultDetails> similarFieldValuesSort = new ArrayList<>();
+		ArrayList<String> groupFieldNamesArray = new ArrayList<>();
+		Map<String, List<InsightsInferenceDetail>> tempMap = new HashMap<>();
+		
+		String trend = "No Change";
+		KPISentiment sentiment = KPISentiment.NEUTRAL;
+		Object[] values = new Object[3];
+		int iterator = 0;
+		
+		//mainloop:
+		for (InferenceResultDetails inferenceResult: inferenceDetailList){ 
+			InferenceResultDetails currentResult = inferenceResult;
+			String currentGroupByFieldName = currentResult.getGroupByFieldVal();
+			for (String inArray : uniqueGroupFieldNamesSet){
+				if (currentGroupByFieldName.equals(inArray)){						
+					similarFieldValuesSort = sortElementsByFieldValue(inferenceDetailList, currentGroupByFieldName);
+					groupFieldNamesArray.add(currentGroupByFieldName);
+					break;
+				}
+			}
+			resultFirstData = similarFieldValuesSort.get(0);
+			InferenceResultDetails result2 = similarFieldValuesSort.get(1);
+			
+			sentiment = getSentiment(result2.getResult(),
+					resultFirstData.getResult(),
+					resultFirstData.getExpectedTrend());
+	
+			values[0] = resultFirstData.getResult();
+			values[1] = result2.getResult();
+			values[2] = currentGroupByFieldName;
+	
+			trend = getTrend(values[0],values[1]);
+			
+			System.out.println("UniqueElements: "+uniqueGroupFieldNamesSet+"\nAdded Elements: "+groupFieldNamesArray);
+			iterator++;
+			if (iterator > uniqueGroupFieldNamesSet.size()){
+				break;
+			}
+			
+			tempMap = getFinalResultMap(schedule, resultFirstData, sentiment, values, trend, similarFieldValuesSort);
+			
+		}
+		return tempMap;
+	}
+	
+	private Map<String, List<InsightsInferenceDetail>> getFinalResultMap(String schedule, InferenceResultDetails resultFirstData, KPISentiment sentiment, Object[] values,
+			String trend, List<InferenceResultDetails> inferenceDetailsList){
+		Map<String, List<InsightsInferenceDetail>> tempMap = new HashMap<>();
+		
+		Long kpiID = resultFirstData.getKpiID();
+		String inferenceName = resultFirstData.getName();
+		String action =  resultFirstData.getAction();
+		String jobSchedule = resultFirstData.getSchedule();
+		String resultOutputType = resultFirstData.getResultOutPutType();
+		boolean isComparison = resultFirstData.getIsComparisionKpi();
+		Date lastRunDate = new Date(resultFirstData.getResultTime());
+		String vector = resultFirstData.getVector();
+		
+		String inferenceText = getInferenceText(inferenceName,
+				vector,	kpiID, sentiment, schedule, values,
+				isComparison, resultOutputType);
+
+		
+		List<ResultSetModel> resultValues = new ArrayList<ResultSetModel>();
+		
+		for (InferenceResultDetails details : inferenceDetailsList) {
+			ResultSetModel model = new ResultSetModel();
+			model.setValue(details.getResult());
+			model.setResultDate(new Date(details.getResultTime()));
+			resultValues.add(model);
+		}
+		
+		Collections.reverse(resultValues);
+		List<InsightsInferenceDetail> detailsList = getInferenceDetails(inferenceName, sentiment, action, trend,
+				inferenceText, jobSchedule, lastRunDate, resultValues);
+		if (tempMap.get(vector) != null) {
+			tempMap.get(vector).addAll(detailsList);
+		} else {
+			tempMap.put(vector, detailsList);
+		}
+		
+		return tempMap;
 	}
 
 	private List<InsightsInferenceDetail> getInferenceDetails(String name, KPISentiment sentiment, String action,
@@ -299,7 +406,14 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 
 	private String getQuery() {
 
-		return "{\r\n" + "  \"size\": 0,\r\n" + "  \"query\": {\r\n" + "    \"bool\": {\r\n" + "      \"must\": [\r\n"
+		return "{\"size\":0,\"query\":{\"bool\":{\"must\":[{\"match\":{\"schedule\":\"__schedule__\"}},\n"
+				+"{\"bool\":{\"must\":[{\"range\":{\"resultTime\":{\"gte\":\"__FromDate__\",\"lte\":\"__ToDate__\",\"format\":\"epoch_millis\"}}}]}}]}},\n"
+				+"\"aggs\":{\"terms\":{\"terms\":{\"field\":\"kpiID\"},\n"
+				+"\"aggs\":{\"top_tag_hits\":{\"top_hits\":{\"size\":30,\"_source\":{\"include\":\n"
+				+"[\"vector\",\"expectedTrend\",\"result\",\"schedule\",\"action\",\"kpiID\",\"name\",\"toolName\",\"resultTime\",\"resultOutPutType\",\"isComparisionKpi\",\"isGroupBy\",\"groupByFieldVal\",\"groupByName\"]},\n"
+				+"\"sort\":{\"resultTime\":{\"order\":\"desc\"}}}}}}}}";
+		
+		/*return "{\r\n" + "  \"size\": 0,\r\n" + "  \"query\": {\r\n" + "    \"bool\": {\r\n" + "      \"must\": [\r\n"
 				+ "        {\r\n" + "          \"match\": {\r\n" + "            \"schedule\": \"__schedule__\"\r\n"
 				+ "          }\r\n" + "        },\r\n" + "        {\r\n" + "          \"bool\": {\r\n"
 				+ "            \"must\": [\r\n" + "              {\r\n" + "                \"range\": {\r\n"
@@ -321,7 +435,7 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 				+ "                \"groupByName\"\r\n" + "              ]\r\n" + "            },\r\n"
 				+ "            \"sort\": {\r\n" + "              \"resultTime\": {\r\n"
 				+ "                \"order\": \"desc\"\r\n" + "              }\r\n" + "            }\r\n"
-				+ "          }\r\n" + "        }\r\n" + "      }\r\n" + "    }\r\n" + "  }\r\n" + "}";
+				+ "          }\r\n" + "        }\r\n" + "      }\r\n" + "    }\r\n" + "  }\r\n" + "}";*/
 		// return "{ \"query\": { \"filtered\": { \"query\": { \"term\": {
 		// \"vector\": \"build\" } }, \"filter\": { \"bool\": { \"must\": [
 		// {\"term\":{\"aggregatedResult\":true}},{ \"range\": { \"resultTime\":

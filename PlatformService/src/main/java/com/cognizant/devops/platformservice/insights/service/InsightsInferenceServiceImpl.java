@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -175,6 +176,19 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 		}
 		Set<String> uniqueGroupFieldNames = new HashSet<>(groupFieldNamesArray);
 		return uniqueGroupFieldNames;
+	}
+	
+	private List<InferenceResultDetails> sortElementsByFieldValue(List<InferenceResultDetails>inferenceResultDetailsList, String groupByFieldName){
+		List<InferenceResultDetails> fieldValues = new ArrayList<>();
+		
+		for (InferenceResultDetails result : inferenceResultDetailsList){
+			String resultGroupFieldName = result.getGroupByFieldVal();
+			
+			if (resultGroupFieldName.equals(groupByFieldName)){
+				fieldValues.add(result);
+			}
+		}
+		return fieldValues;
 	}
 	
 	private Map<String, List<InsightsInferenceDetail>> getElementsByFieldValueResultMap(List<InferenceResultDetails> inferenceDetailList, 

@@ -93,15 +93,13 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 		List<InferenceResultDetails> inferenceDetailList = null;
 		Set<String> uniqueGroupFieldNamesSet = new HashSet<>();
 		
-		boolean isGroupByFieldValAndComparisionKPI = checkIsGroupByFieldValAndComparisionKPI(results);
-		
+		for (InferenceResult inferenceResult : results) {
+		boolean isGroupByFieldValAndComparisionKPI = checkIsGroupByFieldValAndComparisionKPI(inferenceResult);
 		if ( isGroupByFieldValAndComparisionKPI ){
 			inferenceDetailList = getInferenceDetailsList(results);
 			uniqueGroupFieldNamesSet = getUniqueGroupByFieldValuesArray(inferenceDetailList);
-			tempMap = getElementsByFieldValueResultMap(inferenceDetailList, uniqueGroupFieldNamesSet, schedule, isGroupByFieldValAndComparisionKPI);
-		} else {
-
-			for (InferenceResult inferenceResult : results) {
+			tempMap = getElementsByFieldValueResultMap(inferenceDetailList, uniqueGroupFieldNamesSet, schedule, isGroupByFieldValAndComparisionKPI, tempMap);
+		} else {			
 				List<InferenceResultDetails> inferenceResultDetailsList = inferenceResult.getDetails();
 				InferenceResultDetails resultFirstData = inferenceResultDetailsList.get(0);
 					String trend = "No Change";
@@ -133,7 +131,7 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 
 					}
 					
-					tempMap = getFinalResultMap(schedule, resultFirstData, sentiment, values, trend, inferenceResultDetailsList);
+					tempMap = getFinalResultMap(schedule, resultFirstData, sentiment, values, trend, inferenceResultDetailsList, tempMap);
 					//return tempMap;
 			}
 		}
@@ -154,13 +152,14 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 		return inferenceResultDetails;
 	}
 	
-	private boolean checkIsGroupByFieldValAndComparisionKPI(List<InferenceResult> results){
+	private boolean checkIsGroupByFieldValAndComparisionKPI(InferenceResult inferenceResult){
+		List<InferenceResultDetails> currentInferenceDetail = null;
 		InferenceResultDetails groupByFieldCheck = null;
-		List<InferenceResultDetails> inferenceResultDetailsCheck = null;
 		boolean isGroupByFieldValAndComparisionKPI = false;
 		
-		inferenceResultDetailsCheck = getInferenceDetailsList(results);		
-		groupByFieldCheck = inferenceResultDetailsCheck.get(0);
+		//inferenceResultDetailsCheck = getInferenceDetailsList(inferenceResult);
+		currentInferenceDetail = inferenceResult.getDetails();
+		groupByFieldCheck = currentInferenceDetail.get(0);
 			
 		if ( groupByFieldCheck.getIsGroupBy() && groupByFieldCheck.getIsComparisionKpi() ){
 			isGroupByFieldValAndComparisionKPI = true;
@@ -192,12 +191,11 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 	}
 	
 	private Map<String, List<InsightsInferenceDetail>> getElementsByFieldValueResultMap(List<InferenceResultDetails> inferenceDetailList, 
-			Set<String> uniqueGroupFieldNamesSet, String schedule, boolean isGroupByFieldValAndComparisionKPI){
+			Set<String> uniqueGroupFieldNamesSet, String schedule, boolean isGroupByFieldValAndComparisionKPI, Map<String, List<InsightsInferenceDetail>> tempMap){
 		
 		InferenceResultDetails resultFirstData = new InferenceResultDetails();
 		List<InferenceResultDetails> similarFieldValuesSort = new ArrayList<>();
 		ArrayList<String> groupFieldNamesArray = new ArrayList<>();
-		Map<String, List<InsightsInferenceDetail>> tempMap = new HashMap<>();
 		
 		String trend = "No Change";
 		KPISentiment sentiment = KPISentiment.NEUTRAL;
@@ -216,7 +214,12 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 				}
 			}
 			resultFirstData = similarFieldValuesSort.get(0);
-			InferenceResultDetails result2 = similarFieldValuesSort.get(1);
+			InferenceResultDetails result2 = null;
+			if (similarFieldValuesSort.size() <= 1) {
+				result2 = resultFirstData;
+				result2.setResult(0L);
+			} else
+			result2 = similarFieldValuesSort.get(1);
 			
 			sentiment = getSentiment(result2.getResult(),
 					resultFirstData.getResult(),
@@ -228,21 +231,20 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 	
 			trend = getTrend(values[0],values[1]);
 			
-			System.out.println("UniqueElements: "+uniqueGroupFieldNamesSet+"\nAdded Elements: "+groupFieldNamesArray);
+			//System.out.println("UniqueElements: "+uniqueGroupFieldNamesSet+"\nAdded Elements: "+groupFieldNamesArray);
 			iterator++;
 			if (iterator > uniqueGroupFieldNamesSet.size()){
 				break;
 			}
 			
-			tempMap = getFinalResultMap(schedule, resultFirstData, sentiment, values, trend, similarFieldValuesSort);
+			tempMap = getFinalResultMap(schedule, resultFirstData, sentiment, values, trend, similarFieldValuesSort, tempMap);
 			
 		}
 		return tempMap;
 	}
 	
 	private Map<String, List<InsightsInferenceDetail>> getFinalResultMap(String schedule, InferenceResultDetails resultFirstData, KPISentiment sentiment, Object[] values,
-			String trend, List<InferenceResultDetails> inferenceDetailsList){
-		Map<String, List<InsightsInferenceDetail>> tempMap = new HashMap<>();
+			String trend, List<InferenceResultDetails> inferenceDetailsList, Map<String, List<InsightsInferenceDetail>> tempMap){
 		
 		Long kpiID = resultFirstData.getKpiID();
 		String inferenceName = resultFirstData.getName();
@@ -316,7 +318,7 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 		String sparkElasticSearchResultIndex = ApplicationConfigProvider.getInstance().getSparkConfigurations()
 				.getSparkElasticSearchResultIndex();
 		JsonObject jsonObj = esDBHandler.queryES(
-				sparkElasticSearchHost+":"+sparkElasticSearchPort+"/"+sparkElasticSearchResultIndex+"/_search?filter_path=aggregations", esQuery);
+				sparkElasticSearchHost+":"+sparkElasticSearchPort+"/"+sparkElasticSearchResultIndex+"/_search?filter_path=aggregations", esQuery);		
 		
 		List<InferenceResult> inferenceResults = JsonToObjectConverter.getInferenceResult(jsonObj);
 
@@ -376,6 +378,7 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 			messageId = vector.toLowerCase() + "." + kpiId + "." + sentiment.toString() + "." + schedule.toLowerCase();
 		}
 		String inferenceText = messageSource.getMessage(messageId, values, Locale.getDefault());
+		//String inferenceText = "Test Successful!";
 		return inferenceText;
 	}
 
@@ -420,14 +423,14 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 
 	private String getQuery() {
 
-		return "{\"size\":0,\"query\":{\"bool\":{\"must\":[{\"match\":{\"schedule\":\"__schedule__\"}},\n"
+		/*return "{\"size\":0,\"query\":{\"bool\":{\"must\":[{\"match\":{\"schedule\":\"__schedule__\"}},\n"
 				+"{\"bool\":{\"must\":[{\"range\":{\"resultTime\":{\"gte\":\"__FromDate__\",\"lte\":\"__ToDate__\",\"format\":\"epoch_millis\"}}}]}}]}},\n"
 				+"\"aggs\":{\"terms\":{\"terms\":{\"field\":\"kpiID\"},\n"
-				+"\"aggs\":{\"top_tag_hits\":{\"top_hits\":{\"size\":30,\"_source\":{\"include\":\n"
+				+"\"aggs\":{\"top_tag_hits\":{\"top_hits\":{\"size\":100,\"_source\":{\"include\":\n"
 				+"[\"vector\",\"expectedTrend\",\"result\",\"schedule\",\"action\",\"kpiID\",\"name\",\"toolName\",\"resultTime\",\"resultOutPutType\",\"isComparisionKpi\",\"isGroupBy\",\"groupByFieldVal\",\"groupByName\"]},\n"
-				+"\"sort\":{\"resultTime\":{\"order\":\"desc\"}}}}}}}}";
+				+"\"sort\":{\"resultTime\":{\"order\":\"desc\"}}}}}}}}";*/
 		
-		/*return "{\r\n" + "  \"size\": 0,\r\n" + "  \"query\": {\r\n" + "    \"bool\": {\r\n" + "      \"must\": [\r\n"
+		return "{\r\n" + "  \"size\": 0,\r\n" + "  \"query\": {\r\n" + "    \"bool\": {\r\n" + "      \"must\": [\r\n"
 				+ "        {\r\n" + "          \"match\": {\r\n" + "            \"schedule\": \"__schedule__\"\r\n"
 				+ "          }\r\n" + "        },\r\n" + "        {\r\n" + "          \"bool\": {\r\n"
 				+ "            \"must\": [\r\n" + "              {\r\n" + "                \"range\": {\r\n"
@@ -449,7 +452,7 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 				+ "                \"groupByName\"\r\n" + "              ]\r\n" + "            },\r\n"
 				+ "            \"sort\": {\r\n" + "              \"resultTime\": {\r\n"
 				+ "                \"order\": \"desc\"\r\n" + "              }\r\n" + "            }\r\n"
-				+ "          }\r\n" + "        }\r\n" + "      }\r\n" + "    }\r\n" + "  }\r\n" + "}";*/
+				+ "          }\r\n" + "        }\r\n" + "      }\r\n" + "    }\r\n" + "  }\r\n" + "}";
 		// return "{ \"query\": { \"filtered\": { \"query\": { \"term\": {
 		// \"vector\": \"build\" } }, \"filter\": { \"bool\": { \"must\": [
 		// {\"term\":{\"aggregatedResult\":true}},{ \"range\": { \"resultTime\":
@@ -464,4 +467,5 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 		esQuery = esQuery.replace("__schedule__", schedule);
 		return esQuery;
 	}
+	
 }

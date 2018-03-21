@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -56,7 +55,7 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 
 	public List<InsightsInference> getInferenceDetails(String schedule) {
 		List<InsightsInference> inferences = getInferences(schedule);
-
+		
 		return inferences;
 	}
 
@@ -86,19 +85,42 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 
 		return inferences;
 	}
+	
+	private List<InferenceResultWithGroupFields> getInferencesWithGroupByFieldValue(String schedule) {
+		
+		List<InferenceResultWithGroupFields> results = new LinkedList<>();
+			try {
+				results = getInferenceDataWithGroupByFieldValues(schedule);
+			} catch (Exception e) {
+				log.error("Problem getting Spark results", e);
+			}
+		return results;
+	}
 
 	private Map<String, List<InsightsInferenceDetail>> getSortedByVector(String schedule,List<InferenceResult> results) {
 
 		Map<String, List<InsightsInferenceDetail>> tempMap = new HashMap<>();
 		List<InferenceResultDetails> inferenceDetailList = null;
-		Set<String> uniqueGroupFieldNamesSet = new HashSet<>();
 		
 		for (InferenceResult inferenceResult : results) {
-		boolean isGroupByFieldValAndComparisionKPI = checkIsGroupByFieldValAndComparisionKPI(inferenceResult);
+		boolean isGroupByFieldValAndComparisionKPI = checkIsGroupByFieldValAndComparisionKPI(inferenceResult, null);
 		if ( isGroupByFieldValAndComparisionKPI ){
-			inferenceDetailList = getInferenceDetailsList(inferenceResult);
-			uniqueGroupFieldNamesSet = getUniqueGroupByFieldValuesArray(inferenceDetailList);
-			tempMap = getElementsByFieldValueResultMap(inferenceDetailList, uniqueGroupFieldNamesSet, schedule, isGroupByFieldValAndComparisionKPI, tempMap);
+			List<InferenceResultWithGroupFields> resultWithGroupFields = getInferencesWithGroupByFieldValue(schedule);
+			List<InferenceResultDetails> currentInference = inferenceResult.getDetails();
+			InferenceResultDetails currentInferenceDetail = currentInference.get(0);
+			Long kpiId = currentInferenceDetail.getKpiID();
+					
+			for (InferenceResultWithGroupFields resultWithGroup : resultWithGroupFields) {
+				List<InferenceResultDetails> currentInferenceWithGroups = resultWithGroup.getDetails();
+				InferenceResultDetails currentInferenceWithGroupsDetail = currentInferenceWithGroups.get(0);
+				Long kpiIdInGroupsDetail = currentInferenceWithGroupsDetail.getKpiID();
+				
+				if (kpiIdInGroupsDetail.equals(kpiId)) {
+				inferenceDetailList = getInferenceDetailsListWithGroupFields(resultWithGroup);
+				
+				tempMap = getElementsByFieldValueResultMap(inferenceDetailList, currentInferenceWithGroups, schedule, isGroupByFieldValAndComparisionKPI, tempMap);
+				}
+			}
 		} else {			
 				List<InferenceResultDetails> inferenceResultDetailsList = inferenceResult.getDetails();
 				InferenceResultDetails resultFirstData = inferenceResultDetailsList.get(0);
@@ -140,98 +162,47 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 
 	}
 	
-	private List<InferenceResultDetails> getInferenceDetailsList(InferenceResult inferenceResult){
-		List<InferenceResultDetails> inferenceResultDetails = inferenceResult.getDetails();
-		
+	private List<InferenceResultDetails> getInferenceDetailsListWithGroupFields(InferenceResultWithGroupFields resultWithGroupFields){
+		List<InferenceResultDetails> inferenceResultDetails = resultWithGroupFields.getDetails();
 		return inferenceResultDetails;
 	}
 	
-	private boolean checkIsGroupByFieldValAndComparisionKPI(InferenceResult inferenceResult){
-		List<InferenceResultDetails> currentInferenceDetail = null;
-		InferenceResultDetails groupByFieldCheck = null;
+	private boolean checkIsGroupByFieldValAndComparisionKPI(InferenceResult inferenceResult, List<InferenceResultWithGroupFields> resultWithGroupFields){
+		List<InferenceResultDetails> currentInferenceDetail = inferenceResult.getDetails();
+		InferenceResultDetails groupByFieldCheck = currentInferenceDetail.get(0);
 		boolean isGroupByFieldValAndComparisionKPI = false;
-		
-		currentInferenceDetail = getInferenceDetailsList(inferenceResult);
-		groupByFieldCheck = currentInferenceDetail.get(0);
-			
+					
 		if ( groupByFieldCheck.getIsGroupBy() && groupByFieldCheck.getIsComparisionKpi() ){
 			isGroupByFieldValAndComparisionKPI = true;
 		}
 		return isGroupByFieldValAndComparisionKPI;
 	}
 	
-	private Set<String> getUniqueGroupByFieldValuesArray(List<InferenceResultDetails>inferenceResultDetailsList){
-		ArrayList<String> groupFieldNamesArray = new ArrayList<>();
-		for(InferenceResultDetails result: inferenceResultDetailsList){
-			String resultGroupFieldName = result.getGroupByFieldVal();
-			groupFieldNamesArray.add(resultGroupFieldName);
-		}
-		Set<String> uniqueGroupFieldNames = new HashSet<>(groupFieldNamesArray);
-		return uniqueGroupFieldNames;
-	}
-	
-	private List<InferenceResultDetails> sortElementsByFieldValue(List<InferenceResultDetails>inferenceResultDetailsList, String groupByFieldName){
-		List<InferenceResultDetails> fieldValues = new ArrayList<>();
-		
-		for (InferenceResultDetails result : inferenceResultDetailsList){
-			String resultGroupFieldName = result.getGroupByFieldVal();
-			
-			if (resultGroupFieldName.equals(groupByFieldName)){
-				fieldValues.add(result);
-			}
-		}
-		return fieldValues;
-	}
-	
 	private Map<String, List<InsightsInferenceDetail>> getElementsByFieldValueResultMap(List<InferenceResultDetails> inferenceDetailList, 
-			Set<String> uniqueGroupFieldNamesSet, String schedule, boolean isGroupByFieldValAndComparisionKPI, Map<String, List<InsightsInferenceDetail>> tempMap){
+			List<InferenceResultDetails> currentInferenceWithGroups, String schedule, boolean isGroupByFieldValAndComparisionKPI, Map<String, List<InsightsInferenceDetail>> tempMap){
 		
 		InferenceResultDetails resultFirstData = new InferenceResultDetails();
-		List<InferenceResultDetails> similarFieldValuesSort = new ArrayList<>();
-		ArrayList<String> groupFieldNamesArray = new ArrayList<>();
 		
 		String trend = "No Change";
 		KPISentiment sentiment = KPISentiment.NEUTRAL;
 		Object[] values = new Object[3];
-		int iterator = 0;
+						
+		resultFirstData = inferenceDetailList.get(0);
+		InferenceResultDetails result2 = inferenceDetailList.get(1);
+		String currentGroupByFieldName = resultFirstData.getGroupByFieldVal();
 		
-		//mainloop:
-		for (InferenceResultDetails inferenceResult: inferenceDetailList){ 
-			InferenceResultDetails currentResult = inferenceResult;
-			String currentGroupByFieldName = currentResult.getGroupByFieldVal();
-			for (String inArray : uniqueGroupFieldNamesSet){
-				if (currentGroupByFieldName.equals(inArray)){						
-					similarFieldValuesSort = sortElementsByFieldValue(inferenceDetailList, currentGroupByFieldName);
-					groupFieldNamesArray.add(currentGroupByFieldName);
-					break;
-				}
-			}
-			resultFirstData = similarFieldValuesSort.get(0);
-			InferenceResultDetails result2 = null;
-			if (similarFieldValuesSort.size() <= 1) {
-				result2 = resultFirstData;
-				result2.setResult(0L);
-			} else
-			result2 = similarFieldValuesSort.get(1);
-			
-			sentiment = getSentiment(result2.getResult(),
-					resultFirstData.getResult(),
-					resultFirstData.getExpectedTrend());
-	
-			values[0] = resultFirstData.getResult();
-			values[1] = result2.getResult();
-			values[2] = currentGroupByFieldName;
-	
-			trend = getTrend(values[0],values[1]);
-			
-			iterator++;
-			if (iterator > uniqueGroupFieldNamesSet.size()){
-				break;
-			}
-			
-			tempMap = getFinalResultMap(schedule, resultFirstData, sentiment, values, trend, similarFieldValuesSort, tempMap);
-			
-		}
+		sentiment = getSentiment(result2.getResult(),
+				resultFirstData.getResult(),
+				resultFirstData.getExpectedTrend());
+		
+		values[0] = resultFirstData.getResult();
+		values[1] = result2.getResult();
+		values[2] = currentGroupByFieldName;
+		
+		trend = getTrend(values[0],values[1]);
+					
+		tempMap = getFinalResultMap(schedule, resultFirstData, sentiment, values, trend, currentInferenceWithGroups, tempMap);			
+		
 		return tempMap;
 	}
 	
@@ -302,6 +273,27 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 																		// config
 																		// file
 
+		JsonObject jsonObj = getResponseJsonObject(esQuery);		
+		List<InferenceResult> inferenceResults = JsonToObjectConverter.getInferenceResult(jsonObj);
+		return inferenceResults;
+	}
+	
+	private List<InferenceResultWithGroupFields> getInferenceDataWithGroupByFieldValues(String inputSchedule) throws Exception {
+		String esQuery = getGroupByFieldValQuery();
+
+		esQuery = getUpdatedQueryWithDate(esQuery, inputSchedule, 5); // Since
+																		// should
+																		// come
+																		// from
+																		// config
+																		// file
+
+		JsonObject jsonObj = getResponseJsonObject(esQuery);		
+		List<InferenceResultWithGroupFields> inferenceResults = JsonToObjectConverter.getInferenceResultWithGroupFields(jsonObj);
+		return inferenceResults;
+	}
+	
+	private JsonObject getResponseJsonObject(String esQuery) throws Exception {
 		ElasticSearchDBHandler esDBHandler = new ElasticSearchDBHandler();
 		String sparkElasticSearchHost = ApplicationConfigProvider.getInstance().getSparkConfigurations()
 				.getSparkElasticSearchHost();
@@ -310,11 +302,8 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 		String sparkElasticSearchResultIndex = ApplicationConfigProvider.getInstance().getSparkConfigurations()
 				.getSparkElasticSearchResultIndex();
 		JsonObject jsonObj = esDBHandler.queryES(
-				sparkElasticSearchHost+":"+sparkElasticSearchPort+"/"+sparkElasticSearchResultIndex+"/_search?filter_path=aggregations", esQuery);		
-		
-		List<InferenceResult> inferenceResults = JsonToObjectConverter.getInferenceResult(jsonObj);
-
-		return inferenceResults;
+				sparkElasticSearchHost+":"+sparkElasticSearchPort+"/"+sparkElasticSearchResultIndex+"/_search?filter_path=aggregations", esQuery);
+		return jsonObj;
 	}
 	
 	private String getInferenceText(String inferenceName, String vector, Long kpiId, KPISentiment sentiment,
@@ -370,7 +359,6 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 			messageId = vector.toLowerCase() + "." + kpiId + "." + sentiment.toString() + "." + schedule.toLowerCase();
 		}
 		String inferenceText = messageSource.getMessage(messageId, values, Locale.getDefault());
-		//String inferenceText = "Test Successful!";
 		return inferenceText;
 	}
 
@@ -413,14 +401,7 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 
 	}
 
-	private String getQuery() {
-
-		/*return "{\"size\":0,\"query\":{\"bool\":{\"must\":[{\"match\":{\"schedule\":\"__schedule__\"}},\n"
-				+"{\"bool\":{\"must\":[{\"range\":{\"resultTime\":{\"gte\":\"__FromDate__\",\"lte\":\"__ToDate__\",\"format\":\"epoch_millis\"}}}]}}]}},\n"
-				+"\"aggs\":{\"terms\":{\"terms\":{\"field\":\"kpiID\"},\n"
-				+"\"aggs\":{\"top_tag_hits\":{\"top_hits\":{\"size\":100,\"_source\":{\"include\":\n"
-				+"[\"vector\",\"expectedTrend\",\"result\",\"schedule\",\"action\",\"kpiID\",\"name\",\"toolName\",\"resultTime\",\"resultOutPutType\",\"isComparisionKpi\",\"isGroupBy\",\"groupByFieldVal\",\"groupByName\"]},\n"
-				+"\"sort\":{\"resultTime\":{\"order\":\"desc\"}}}}}}}}";*/
+	private String getQuery() {		
 		
 		return "{\r\n" + "  \"size\": 0,\r\n" + "  \"query\": {\r\n" + "    \"bool\": {\r\n" + "      \"must\": [\r\n"
 				+ "        {\r\n" + "          \"match\": {\r\n" + "            \"schedule\": \"__schedule__\"\r\n"
@@ -452,6 +433,33 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 		// \"epoch_millis\" } } } ] } } } }},\"sort\": { \"resultTime\": {
 		// \"order\": \"desc\" }}";
 	}
+	
+	private String getGroupByFieldValQuery() {		
+			
+			return "{\r\n" + "  \"size\": 0,\r\n" + "  \"query\": {\r\n" + "    \"bool\": {\r\n" + "      \"must\": [\r\n"
+					+ "        {\r\n" + "          \"match\": {\r\n" + "            \"schedule\": \"__schedule__\"\r\n"
+					+ "          }\r\n" + "        },\r\n" + "        {\r\n" + "          \"bool\": {\r\n"
+					+ "            \"must\": [\r\n" + "              {\r\n" + "                \"range\": {\r\n"
+					+ "                  \"resultTime\": {\r\n" + "                    \"gte\": \"__FromDate__\",\r\n"
+					+ "                    \"lte\": \"__ToDate__\",\r\n"
+					+ "                    \"format\": \"epoch_millis\"\r\n" + "                  }\r\n"
+					+ "                }\r\n" + "              }\r\n" + "            ]\r\n" + "          }\r\n"
+					+ "        }\r\n" + "      ]\r\n" + "    }\r\n" + "  },\r\n" + "  \"aggs\": {\r\n"
+					+ "    \"terms\": {\r\n" + "      \"terms\": {\r\n" + "\"size\":30,"
+					+ "        \"field\": \"groupByFieldVal\"\r\n" + "      },\r\n" + "      \"aggs\": {\r\n"
+					+ "        \"top_tag_hits\": {\r\n" + "          \"top_hits\": {\r\n" + "            \"_source\": {\r\n"
+					+ "              \"include\": [\r\n" + "                \"vector\",\r\n"
+					+ "                \"expectedTrend\",\r\n" + "                \"result\",\r\n"
+					+ "                \"schedule\",\r\n" + "                \"action\",\r\n"
+					+ "                \"kpiID\",\r\n" + "                \"name\",\r\n"
+					+ "                \"toolName\",\r\n" + "                \"resultTime\",\r\n"
+					+ "                \"resultOutPutType\",\r\n" + "                \"isComparisionKpi\",\r\n"
+					+ "                \"isGroupBy\",\r\n" + "                \"groupByFieldVal\",\r\n"
+					+ "                \"groupByName\"\r\n" + "              ]\r\n" + "            },\r\n"
+					+ "            \"sort\": {\r\n" + "              \"resultTime\": {\r\n"
+					+ "                \"order\": \"desc\"\r\n" + "              }\r\n" + "            }\r\n"
+					+ "          }\r\n" + "        }\r\n" + "      }\r\n" + "    }\r\n" + "  }\r\n" + "}";
+		}
 
 	private String getUpdatedQueryWithDate(String esQuery, String schedule, Integer since) {
 		esQuery = esQuery.replace("__FromDate__", InsightsUtils.getDataFromTime(schedule, since) + "");

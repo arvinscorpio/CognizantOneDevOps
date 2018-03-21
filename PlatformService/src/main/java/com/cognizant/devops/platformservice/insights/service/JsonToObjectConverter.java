@@ -88,5 +88,62 @@ public final class JsonToObjectConverter {
 		}
 		return results;
 	}
+	
+	public static List<InferenceResultWithGroupFields> getInferenceResultWithGroupFields(JsonObject jsonObj){
+			
+			List<InferenceResultWithGroupFields> results = new LinkedList<>();
+			
+			JsonObject rootObj = jsonObj.get("aggregations").getAsJsonObject().get("terms").getAsJsonObject();
+			JsonArray array = rootObj.get("buckets").getAsJsonArray();
+			for(JsonElement element : array){
+				InferenceResultWithGroupFields inferenceResultWithGroupFields = new InferenceResultWithGroupFields();
+				
+				JsonObject output = element.getAsJsonObject();
+				
+				String groupField = output.get("key").getAsString();
+				inferenceResultWithGroupFields.setGroupField(groupField);
+				inferenceResultWithGroupFields.setTotalDocuments(output.get("doc_count").getAsLong());
+				
+				JsonObject hits = output.get("top_tag_hits").getAsJsonObject().get("hits").getAsJsonObject();
+				JsonArray hitsArray = hits.get("hits").getAsJsonArray();
+				
+				List<InferenceResultDetails> details = new ArrayList<>(5);
+				
+				for(JsonElement hitElement : hitsArray) {
+					JsonObject kpiData = hitElement.getAsJsonObject().get("_source").getAsJsonObject();
+					InferenceResultDetails inferenceDetails = new InferenceResultDetails();
+					
+					inferenceDetails.setKpiID(kpiData.get(KPIJobResultAttributes.KPIID.toString()).getAsLong());
+					inferenceDetails.setName(kpiData.get(KPIJobResultAttributes.NAME.toString()).getAsString());
+					inferenceDetails.setAction(kpiData.get(KPIJobResultAttributes.ACTION.toString()).getAsString());
+					inferenceDetails.setExpectedTrend(kpiData.get(KPIJobResultAttributes.EXPECTEDTREND.toString()).getAsString());
+					if(kpiData.get(KPIJobResultAttributes.ISCOMPARISIONKPI.toString()) != null && !kpiData.get(KPIJobResultAttributes.ISCOMPARISIONKPI.toString()).isJsonNull()) {
+						inferenceDetails.setIsComparisionKpi(kpiData.get(KPIJobResultAttributes.ISCOMPARISIONKPI.toString()).getAsBoolean());
+					}
+					inferenceDetails.setResult(kpiData.get(KPIJobResultAttributes.RESULT.toString()).getAsLong());
+					if(kpiData.get(KPIJobResultAttributes.RESULTOUTPUTTYPE.toString()) != null && !kpiData.get(KPIJobResultAttributes.RESULTOUTPUTTYPE.toString()).isJsonNull()) {
+						inferenceDetails.setResultOutPutType(kpiData.get(KPIJobResultAttributes.RESULTOUTPUTTYPE.toString()).getAsString());
+					}
+					inferenceDetails.setResultTime(kpiData.get(KPIJobResultAttributes.RESULTTIME.toString()).getAsLong());
+					inferenceDetails.setSchedule(kpiData.get(KPIJobResultAttributes.SCHEDULE.toString()).getAsString());
+					inferenceDetails.setVector(kpiData.get(KPIJobResultAttributes.VECTOR.toString()).getAsString());
+					if(!kpiData.get(KPIJobResultAttributes.TOOLNAME.toString()).isJsonNull()) {
+						inferenceDetails.setToolName(kpiData.get(KPIJobResultAttributes.TOOLNAME.toString()).getAsString());
+					}
+					
+					if(!kpiData.get(KPIJobResultAttributes.ISGROUPBY.toString()).isJsonNull() && kpiData.get(KPIJobResultAttributes.ISGROUPBY.toString()).getAsBoolean()) {
+						inferenceDetails.setIsGroupBy(kpiData.get(KPIJobResultAttributes.ISGROUPBY.toString()).getAsBoolean());
+						inferenceDetails.setGroupByName(kpiData.get(KPIJobResultAttributes.GROUPBYFIELDNAME.toString()).getAsString());
+						inferenceDetails.setGroupByFieldVal(kpiData.get(KPIJobResultAttributes.GROUPBYFIELDVAL.toString()).getAsString());
+					} else {
+						inferenceDetails.setIsGroupBy(Boolean.FALSE);
+					}
+					details.add(inferenceDetails);
+				}
+				inferenceResultWithGroupFields.setDetails(details);
+				results.add(inferenceResultWithGroupFields);
+			}
+			return results;
+		}
 
 }

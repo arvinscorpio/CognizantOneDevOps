@@ -96,7 +96,7 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 		for (InferenceResult inferenceResult : results) {
 		boolean isGroupByFieldValAndComparisionKPI = checkIsGroupByFieldValAndComparisionKPI(inferenceResult);
 		if ( isGroupByFieldValAndComparisionKPI ){
-			inferenceDetailList = getInferenceDetailsList(results);
+			inferenceDetailList = getInferenceDetailsList(inferenceResult);
 			uniqueGroupFieldNamesSet = getUniqueGroupByFieldValuesArray(inferenceDetailList);
 			tempMap = getElementsByFieldValueResultMap(inferenceDetailList, uniqueGroupFieldNamesSet, schedule, isGroupByFieldValAndComparisionKPI, tempMap);
 		} else {			
@@ -140,15 +140,9 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 
 	}
 	
-	private List<InferenceResultDetails> getInferenceDetailsList(List<InferenceResult> results){
-		List<InferenceResultDetails> inferenceResultDetails = null;
-		for (InferenceResult inferenceResult : results) {
-			int resultCheckFlag = 1;
-			inferenceResultDetails = inferenceResult.getDetails();
-			resultCheckFlag = 0;
-			if (resultCheckFlag == 0)
-				break;
-		} 
+	private List<InferenceResultDetails> getInferenceDetailsList(InferenceResult inferenceResult){
+		List<InferenceResultDetails> inferenceResultDetails = inferenceResult.getDetails();
+		
 		return inferenceResultDetails;
 	}
 	
@@ -157,8 +151,7 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 		InferenceResultDetails groupByFieldCheck = null;
 		boolean isGroupByFieldValAndComparisionKPI = false;
 		
-		//inferenceResultDetailsCheck = getInferenceDetailsList(inferenceResult);
-		currentInferenceDetail = inferenceResult.getDetails();
+		currentInferenceDetail = getInferenceDetailsList(inferenceResult);
 		groupByFieldCheck = currentInferenceDetail.get(0);
 			
 		if ( groupByFieldCheck.getIsGroupBy() && groupByFieldCheck.getIsComparisionKpi() ){
@@ -231,7 +224,6 @@ public class InsightsInferenceServiceImpl implements InsightsInferenceService {
 	
 			trend = getTrend(values[0],values[1]);
 			
-			//System.out.println("UniqueElements: "+uniqueGroupFieldNamesSet+"\nAdded Elements: "+groupFieldNamesArray);
 			iterator++;
 			if (iterator > uniqueGroupFieldNamesSet.size()){
 				break;

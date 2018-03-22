@@ -43,7 +43,7 @@ public class CountActionImpl extends BaseActionImpl {
 		Map<String, Object> resultMap = new HashMap<>();
 		ElasticSearchDBHandler esDBHandler = new ElasticSearchDBHandler();
 		try {
-			String esQuery = getEsQueryWithDates(kpiDefinition.getSchedule(),kpiDefinition.getEsquery());
+			String esQuery = getEsQueryWithDates(kpiDefinition.getSchedule(),kpiDefinition.getDataQuery());
 			log.debug("Counting KPIs");
 			if(kpiDefinition.isGroupBy()) {
 				log.debug("GroupBy found True. Entering GroupBy method + Query -"+esQuery);

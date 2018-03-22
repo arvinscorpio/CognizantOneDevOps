@@ -41,7 +41,7 @@ public class MinMaxActionImpl extends BaseActionImpl {
 		ElasticSearchDBHandler esDBHandler = new ElasticSearchDBHandler();
 		try {
 			log.debug("Entering Minimum and Maximum block");
-			String esQuery = getEsQueryWithDates(kpiDefinition.getSchedule(),kpiDefinition.getEsquery());
+			String esQuery = getEsQueryWithDates(kpiDefinition.getSchedule(),kpiDefinition.getDataQuery());
 			log.debug("MINMAX query - "+esQuery);
 			JsonObject jsonObj = esDBHandler.queryES(ConfigConstants.SPARK_ES_HOST+":"+ConfigConstants.SPARK_ES_PORT+"/"+kpiDefinition.getEsResource()+"/_search?size=0&filter_path=aggregations", esQuery);
 			JsonObject aggObj = jsonObj.get("aggregations").getAsJsonObject().get("minMaxOutput").getAsJsonObject();

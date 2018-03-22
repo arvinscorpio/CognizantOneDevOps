@@ -48,7 +48,8 @@ public class KPIDefinition implements Serializable{
     private String averageField;
     private String sumCalculationField;
     
-	private String esquery;
+	private String dbType;
+	private String dataQuery;
     private String esResource;
     
 	public Integer getKpiID() {
@@ -168,11 +169,17 @@ public class KPIDefinition implements Serializable{
 	public void setToolName(String toolName) {
 		this.toolName = toolName;
 	}
-	public String getEsquery() {
-		return esquery;
+    public String getDbType() {
+		return dbType;
 	}
-	public void setEsquery(String esquery) {
-		this.esquery = esquery;
+	public void setDbType(String dbType) {
+		this.dbType = dbType;
+	}
+	public String getDataQuery() {
+		return dataQuery;
+	}
+	public void setDataQuery(String dataQuery) {
+		this.dataQuery = dataQuery;
 	}
 	public String getEsResource() {
 		return esResource;

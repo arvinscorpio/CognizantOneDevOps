@@ -54,7 +54,7 @@ public abstract class BaseActionImpl {
 	
 	private void buildSparkJob(KPIDefinition kpiDefinition){
 		Map<String, String> jobConf = new HashMap<String, String>();
-		String esQuery = kpiDefinition.getEsquery();
+		String esQuery = kpiDefinition.getDataQuery();
 		esQuery = getEsQueryWithDates(kpiDefinition.getSchedule(),esQuery);
 		log.debug("KPI query - "+esQuery);
 		jobConf.put("es.query", esQuery);

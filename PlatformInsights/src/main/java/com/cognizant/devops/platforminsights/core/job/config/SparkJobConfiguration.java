@@ -111,7 +111,8 @@ public class SparkJobConfiguration implements Serializable{
 		kpiDef.setSumCalculationField(kpiDetails.get("sumCalculationField"));
 		kpiDef.setVector(kpiDetails.get("vector"));
 		kpiDef.setToolName(kpiDetails.get("toolName"));
-		kpiDef.setEsquery(kpiDetails.get("esquery"));
+		kpiDef.setDbType(kpiDetails.get("dbType"));
+		kpiDef.setDataQuery(kpiDetails.get("dataQuery"));
 		kpiDef.setEsResource(kpiDetails.get("esresource"));
 		
 		return kpiDef;

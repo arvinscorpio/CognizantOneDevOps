@@ -44,7 +44,9 @@ public abstract class BaseActionImpl {
 			buildSparkJob(kpiDefinition);
 		}
 		else if(ExecutionActions.SUM == kpiDefinition.getAction()){
-			buildSparkJob(kpiDefinition);
+			if (kpiDefinition.getDbType().equalsIgnoreCase("Elasticsearch")){
+				buildSparkJob(kpiDefinition);
+			}
 		}
 		//Map<String, Object> result = execute();
 		//saveResult(result);

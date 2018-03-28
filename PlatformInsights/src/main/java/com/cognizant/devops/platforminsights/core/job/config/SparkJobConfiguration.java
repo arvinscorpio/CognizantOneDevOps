@@ -113,6 +113,7 @@ public class SparkJobConfiguration implements Serializable{
 		kpiDef.setToolName(kpiDetails.get("toolName"));
 		kpiDef.setDbType(kpiDetails.get("dbType"));
 		kpiDef.setDataQuery(kpiDetails.get("dataQuery"));
+		kpiDef.setEsquery(kpiDetails.get("esquery"));
 		kpiDef.setEsResource(kpiDetails.get("esresource"));
 		
 		return kpiDef;

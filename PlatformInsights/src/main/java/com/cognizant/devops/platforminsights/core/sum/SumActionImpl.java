@@ -33,7 +33,7 @@ import com.cognizant.devops.platforminsights.exception.InsightsSparkJobFailedExc
 import scala.Tuple2;
 
 public class SumActionImpl extends BaseActionImpl {
-	
+
 	private static Logger log = Logger.getLogger(SumActionImpl.class);
 
 	public SumActionImpl(KPIDefinition kpiDefinition) {
@@ -43,65 +43,71 @@ public class SumActionImpl extends BaseActionImpl {
 	@Override
 	protected Map<String, Object> execute() throws InsightsSparkJobFailedException {
 		log.debug("Calculating KPI Sum");
-		if ( kpiDefinition.getDbType().equalsIgnoreCase("neo4j") ){
+		if (kpiDefinition.getDbType() == null) {
+			executeESQuery();
+		} else if (kpiDefinition.getDbType().equalsIgnoreCase("neo4j")) {
 			executeGraphQuery();
-		} else if ( kpiDefinition.getDbType().equalsIgnoreCase("elasticsearch") ) {
+		} else if (kpiDefinition.getDbType().equalsIgnoreCase("elasticsearch")) {
 			executeESQuery();
 		}
-		
+
 		return null;
 	}
-	
-	private void executeGraphQuery(){
-		if ( kpiDefinition.getDbType().equalsIgnoreCase("neo4j") ){
-			try{			
+
+	private void executeGraphQuery() {
+		if (kpiDefinition.getDbType().equalsIgnoreCase("neo4j")) {
+			try {
 				Neo4jDBImp graphDb = new Neo4jDBImp(kpiDefinition);
 				List<Map<String, Object>> graphResposne = graphDb.getNeo4jResult();
 				saveResult(graphResposne);
-			
+
 			} catch (Exception e) {
-				log.error("Sum calculation job failed for kpiID - "+kpiDefinition.getKpiID(), e);
+				log.error("Sum calculation job failed for kpiID - " + kpiDefinition.getKpiID(), e);
 			}
 		}
 	}
-	
-	private void executeESQuery() throws InsightsSparkJobFailedException{
-		if ( kpiDefinition.getDbType().equalsIgnoreCase("elasticsearch") ) {
-			try {	
-				executeGraphQuery();
-				if(kpiDefinition.isGroupBy()) {
+
+	private void executeESQuery() throws InsightsSparkJobFailedException {
+		if (kpiDefinition.getDbType() == null || kpiDefinition.getDbType().equalsIgnoreCase("elasticsearch")) {
+			try {
+				if (kpiDefinition.isGroupBy()) {
 					log.debug("GroupBy found true. Entering GroupBy method");
-					JavaRDD<Map<String, Object>> data =  esRDD.values();
-					String groupByField = kpiDefinition.getGroupByField(); //Lamda Function fails if you try to set value directly. Serialization error
+					JavaRDD<Map<String, Object>> data = esRDD.values();
+					String groupByField = kpiDefinition.getGroupByField(); // Lamda Function fails if you try to set
+																			// value directly. Serialization error
 					String sumField = kpiDefinition.getSumCalculationField();
-					JavaPairRDD<String, Tuple2<Long, Integer>> valueCount = data.mapToPair( x -> new Tuple2<String, Long>(x.get(groupByField).toString(),
-							Long.valueOf(x.get(sumField).toString()))).mapValues(value -> new Tuple2<Long, Integer>(value,1));
-					JavaPairRDD<String, Tuple2<Long, Integer>> reducedCount = valueCount.reduceByKey((tuple1,tuple2) ->  new Tuple2<Long, Integer>(tuple1._1 + tuple2._1, tuple1._2 + tuple2._2));
-					
-					//calculate average
-			        JavaPairRDD<String, Long> sumPair = reducedCount.mapToPair(new InsightsSumFunction());
-			        //print averageByKey
-			        Map<String, Long> result =  sumPair.collectAsMap();
-			       //HashMap<String, Object> resultMap
-			        Set<String> resultKeys = result.keySet();
-			        List<Map<String, Object>> resultList = new ArrayList<>();
-			        for(String key:resultKeys) {
-			        	log.debug(key + "--- "+result.get(key));
-			        	Map<String, Object> resultMap = getResultMap(result.get(key),key);
-			        	resultList.add(resultMap);
-			        }
-			        saveResult(resultList);
+					JavaPairRDD<String, Tuple2<Long, Integer>> valueCount = data
+							.mapToPair(x -> new Tuple2<String, Long>(x.get(groupByField).toString(),
+									Long.valueOf(x.get(sumField).toString())))
+							.mapValues(value -> new Tuple2<Long, Integer>(value, 1));
+					JavaPairRDD<String, Tuple2<Long, Integer>> reducedCount = valueCount.reduceByKey((tuple1,
+							tuple2) -> new Tuple2<Long, Integer>(tuple1._1 + tuple2._1, tuple1._2 + tuple2._2));
+
+					// calculate average
+					JavaPairRDD<String, Long> sumPair = reducedCount.mapToPair(new InsightsSumFunction());
+					// print averageByKey
+					Map<String, Long> result = sumPair.collectAsMap();
+					// HashMap<String, Object> resultMap
+					Set<String> resultKeys = result.keySet();
+					List<Map<String, Object>> resultList = new ArrayList<>();
+					for (String key : resultKeys) {
+						log.debug(key + "--- " + result.get(key));
+						Map<String, Object> resultMap = getResultMap(result.get(key), key);
+						resultList.add(resultMap);
+					}
+					saveResult(resultList);
 				} else {
 					log.debug("GroupBy found false. Calculating KPI Sum");
 					JavaRDD<Long> map = esRDD.map(new ESMapFunction(kpiDefinition));
-			        Sum initial = new Sum(0l, 0l);
-			        Sum avgResult = map.aggregate(initial, new AddToSum(), new CombineSum());
-			        Map<String, Object> resultMap = getResultMap(avgResult.avg(),null);
-			        saveResult(resultMap);
+					Sum initial = new Sum(0l, 0l);
+					Sum avgResult = map.aggregate(initial, new AddToSum(), new CombineSum());
+					Map<String, Object> resultMap = getResultMap(avgResult.avg(), null);
+					saveResult(resultMap);
 				}
 			} catch (Exception e) {
-				log.error("Sum calculation job failed for kpiID - "+kpiDefinition.getKpiID(), e);
-				throw new InsightsSparkJobFailedException("Sum calculation job failed for kpiID - "+kpiDefinition.getKpiID(), e);
+				log.error("Sum calculation job failed for kpiID - " + kpiDefinition.getKpiID(), e);
+				throw new InsightsSparkJobFailedException(
+						"Sum calculation job failed for kpiID - " + kpiDefinition.getKpiID(), e);
 			}
 		}
 	}

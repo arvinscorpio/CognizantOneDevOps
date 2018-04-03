@@ -30,7 +30,7 @@ public class ContentConfig  {
      public ReloadableResourceBundleMessageSource messageSource () {
 		 ReloadableResourceBundleMessageSource messageSource =
                              new ReloadableResourceBundleMessageSource();
-         messageSource.setBasenames("classpath:/messages/build/msg","classpath:/messages/deploy/msg","classpath:/messages/codequality/msg","i18n");
+         messageSource.setBasenames("classpath:/messages/build/msg","classpath:/messages/deploy/msg","classpath:/messages/codequality/msg","classpath:/messages/development/msg","i18n");
          messageSource.setDefaultEncoding("UTF-8");
          messageSource.setCacheSeconds(120);
          return messageSource;

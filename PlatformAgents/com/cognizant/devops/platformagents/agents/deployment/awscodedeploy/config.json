@@ -25,7 +25,6 @@
       }
   },
   "useResponseTemplate" : false,
-  "token" : "9e2fd73d01695e0e350670ebfff501cce61c2f56",
   "useAllBuildsApi" : false,
   "runSchedule": 15,
   "toolsTimeZone" : "Asia/Kolkata",

@@ -1,9 +1,0 @@
-[Unit]
-Description=Ubuntu JiraAgent Service
-
-[Service]
-Type=forking
-ExecStart=/bin/bash /opt/insightsagents/PlatformAgents/jira/InSightsJiraAgent.sh
-
-[Install]
-WantedBy=multi-user.target

@@ -1,9 +1,0 @@
-[Unit]
-Description=Ubuntu TFSAgent Service
-
-[Service]
-Type=forking
-ExecStart=/bin/bash /opt/insightsagents/PlatformAgents/tfs/InSightsTFSAgent.sh
-
-[Install]
-WantedBy=multi-user.target

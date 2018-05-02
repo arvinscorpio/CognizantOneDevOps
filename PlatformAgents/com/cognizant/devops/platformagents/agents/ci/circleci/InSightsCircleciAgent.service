@@ -1,9 +1,0 @@
-[Unit]
-Description=Ubuntu CircleciAgent Service
-
-[Service]
-Type=forking
-ExecStart=/bin/bash /opt/insightsagents/PlatformAgents/circleci/InSightsCircleciAgent.sh
-
-[Install]
-WantedBy=multi-user.target

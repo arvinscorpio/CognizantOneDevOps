@@ -1,2 +1,0 @@
-pushd %INSIGHTS_AGENT_HOME%\PlatformAgents\ucd
-python -c "from com.cognizant.devops.platformagents.agents.deployment.ucd.UrbanCodeDeployAgentAgent import UrbanCodeDeployAgentAgent; UrbanCodeDeployAgentAgent()"

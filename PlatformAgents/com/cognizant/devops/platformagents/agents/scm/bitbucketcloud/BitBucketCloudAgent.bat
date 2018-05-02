@@ -1,2 +1,0 @@
-pushd %INSIGHTS_AGENT_HOME%\PlatformAgents\bitbucketcloud
-python -c "from com.cognizant.devops.platformagents.agents.scm.bitbucketcloud.BitBucketCloudAgent import BitBucketCloudAgent; BitBucketCloudAgent()"

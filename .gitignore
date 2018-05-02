@@ -1,7 +1,0 @@
-*.pydevproject
-*.classpath
-*.project
-*.settings*
-*/target/*
-*.log
-*.gitignore

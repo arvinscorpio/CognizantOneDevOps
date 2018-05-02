@@ -3,6 +3,7 @@ Steps to execute Insights Bot
 1.Clone this repository.
 
 2.Export the environmental variables mentioned below
+
 	export NEXUS_URL=                         ##Repository URL to download artifacts and deploy to target server
 
 	export NEXUS_USERNAME=

@@ -25,7 +25,13 @@
 					"date": "commitTime"
 				}
 			}
-		}
+		},
+        "relationMetadata": {"relation":{"properties":["commitId"],"name":"BRANCH_HAS_COMMITS","source":{"constraints":["repoName","commitId"]},"destination":{"constraints":["branchName"]}}},
+        "commitMetadata": {"labels" : ["COMMIT"],"dataUpdateSupported" : true,"uniqueKey":["repoName","commitId"]},
+	"commitresponseTemplate" : {
+		"sha": "commitId"
+	},
+        "branchMetadata": {"labels" : ["METADATA"]}
 	},
 	"enableBranches" : false,
 	"toolCategory" : "SCM",

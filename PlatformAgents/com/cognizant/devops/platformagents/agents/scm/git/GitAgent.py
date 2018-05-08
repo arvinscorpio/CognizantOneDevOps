@@ -34,7 +34,12 @@ class GitAgent(BaseAgent):
         getReposUrl = getRepos+"?access_token="+accessToken
         enableBranches = self.config.get("enableBranches", False)
         repos = self.getResponse(getReposUrl+'&per_page=100&sort=created&page=1', 'GET', None, None, None)
-        responseTemplate = self.getResponseTemplate()
+        
+        relationMetadata = self.config.get('dynamicTemplate', {}).get('relationMetadata', None)
+        commitMetadata = self.config.get('dynamicTemplate', {}).get('commitMetadata', None)
+        responseTemplate = self.config.get('dynamicTemplate', {}).get('commitresponseTemplate', None)
+        
+        #responseTemplate = self.getResponseTemplate()
         repoPageNum = 1
         fetchNextPage = True
         while fetchNextPage:
@@ -86,6 +91,9 @@ class GitAgent(BaseAgent):
                                 self.publishToolsData(activeBranches, metadata)
                         for branch in branches:
                             data = []
+                            
+                            commit_data=[]
+                            
                             injectData = {}
                             injectData['repoName'] = repoName
                             injectData['branchName'] = branch
@@ -109,6 +117,9 @@ class GitAgent(BaseAgent):
                                     for commit in commits:
                                         if since is not None or startFrom < parser.parse(commit["commit"]["author"]["date"], ignoretz=True):
                                             data += self.parseResponse(responseTemplate, commit, injectData)
+
+                                            commit_data += self.getCommitInformation(commit,repoName,parsedBranch,commit["sha"],commit["commit"]["message"],commit["commit"]["author"]["name"])
+                                            
                                         else:
                                             fetchNextCommitsPage = False
                                             self.updateTrackingForBranch(trackingDetails, branch, latestCommit)
@@ -122,11 +133,25 @@ class GitAgent(BaseAgent):
                                 commitsPageNum = commitsPageNum + 1
                             if len(data) > 0:
                                 self.updateTrackingForBranch(trackingDetails, branch, latestCommit)
-                                self.publishToolsData(data)
+
+                                self.publishToolsData(commit_data,commitMetadata)
+                                self.publishToolsData(data, relationMetadata)
+
+                                #self.publishToolsData(data)
                             self.updateTrackingJson(self.tracking)
             repoPageNum = repoPageNum + 1
             repos = self.getResponse(getReposUrl+'&per_page=100&sort=created&page='+str(repoPageNum), 'GET', None, None, None)
-    
+
+    def getCommitInformation(self, commit_pass, repoName, parsedBranch, commitId, commitMessage, commitName):
+        data_commit=[]
+        commit_obj = {}
+        commit_obj['commitId'] = commitId
+        commit_obj['repoName'] = repoName
+        commit_obj['authorName'] = commitName
+        commit_obj['commitMessage'] = commitMessage
+        data_commit.append(commit_obj)
+        return data_commit
+
     def updateTrackingForBranch(self, trackingDetails, branchName, latestCommit):
         updatetimestamp = latestCommit["commit"]["author"]["date"]
         dt = parser.parse(updatetimestamp)

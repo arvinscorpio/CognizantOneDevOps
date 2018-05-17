@@ -154,7 +154,7 @@ class GitAgent(BaseAgent):
                                 self.publishToolsData(commit_data,commitMetadata)
                                 self.publishToolsData(data, relationMetadata)
 
-                                delete_status = True
+                                delete_status = False
                                 self.updateTrackingForBranch(trackingDetails, branch, latestCommit, delete_status)
 
                                 #self.publishToolsData(data)

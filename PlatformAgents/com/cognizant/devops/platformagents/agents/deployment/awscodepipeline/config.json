@@ -1,0 +1,42 @@
+{
+  "mqConfig": {
+    "user": "iSight",
+    "password": "iSight",
+    "host": "127.0.0.1",
+    "exchange": "iSight"
+  },
+  "subscribe": {
+    "config": "Pipeline.AWSCODEPIPELINE.config"
+  },
+  "publish": {
+    "data": "Pipeline.AWSCODEPIPELINE.DATA",
+    "health": "Pipeline.AWSCODEPIPELINE.HEALTH"
+  },
+  "communication": {
+    "type": "REST"
+  },
+  "responseTemplate": {
+    "stageStates": {
+      "actionStates": {
+        "latestExecution": {
+          "lastStatusChange": "lastStatusChange",
+          "status": "status"
+        }
+      },
+      "stageName": "stageName"
+    }
+  },
+  "useResponseTemplate" : false,
+  "pipeline" : ["SPOT-pipeline", "SWIFT-Pipeline"],
+  "token" : "9e2fd73d01695e0e350670ebfff501cce61c2f56",
+  "useAllBuildsApi" : false,
+  "runSchedule": 15,
+  "toolsTimeZone" : "Asia/Kolkata",
+  "insightsTimeZone" : "Asia/Kolkata",
+  "timeStampField": "lastUpdated",
+  "timeStampFormat":"%Y-%m-%dT%H:%M:%S",
+  "StartFrom" : "2010-10-10 00:01:00",
+  "loggingSetting" : {
+                "logLevel" : "WARN"
+        }
+}

@@ -15,8 +15,7 @@
 		"sparkElasticSearchResultIndex": "",
 		"kpiSize": "30",
 		"sparkResultSince": 5,
-		"sparkMasterExecutionEndPoint": "http://localhost:4040",
-		"sparkElasticsearchResultCacheIndex": "http://localhost:9200/neo4j-cached-results/querycacheresult/"
+		"sparkMasterExecutionEndPoint": "http://localhost:4040"
 	},
 
 	"emailConfiguration": 
@@ -95,6 +94,11 @@
 		"unzipPath": "D://download",
 		"agentExchange": "iAgent",
 		"agentPkgQueue": "INSIGHTS.AGENTS.PACKAGE"
+	},
+
+	"queryCache": 
+	{
+		"esCacheIndex": "http://localhost:9200/neo4j-cached-results/querycacheresult"
 	},
 
 	"insightsServiceURL": "http://localhost:8080",

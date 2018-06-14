@@ -198,14 +198,14 @@ public class Neo4jDBHandler {
 	 * @return GraphResponse
 	 * @throws GraphDBException
 	 */
-	public GraphResponse executeCypherQueryMultiple(JsonArray queryArray) throws GraphDBException {
+	public GraphResponse executeCypherQueryMultiple(String[] queriesArray) throws GraphDBException {
 		JsonObject requestJson = new JsonObject();
 		JsonArray statementArray = new JsonArray();
 		JsonObject statement = null;
 		JsonArray resultDataContents = null;
-		int count = queryArray.size();
+		int count = queriesArray.length;
 		for (int i = 0; i < count; i++) {
-			String query = queryArray.get(i).getAsJsonObject().get("statement").getAsString();
+			String query = queriesArray[i];
 			statement = new JsonObject();
 			statement.addProperty("statement", query);
 			resultDataContents = new JsonArray();

@@ -29,49 +29,49 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 
-
 /**
  * 
  * @author 146414
  *
- * This class will handle all the interactions with graph database.
+ *         This class will handle all the interactions with graph database.
  */
 
 public class Neo4jDBHandler {
 	DocumentParser parser = new DocumentParser();
-	
-	
+
 	/*
-	 * Create Nodes using neo4j rest api with transaction support. Following are request details:
-	 * 		POST http://localhost:7474/db/data/transaction/commit
-	 * 		Accept: application/json; charset=UTF-8
-	 * 		Content-Type: application/json
-	 * Here, we are committing the entire transaction at once.
+	 * Create Nodes using neo4j rest api with transaction support. Following are
+	 * request details: POST http://localhost:7474/db/data/transaction/commit
+	 * Accept: application/json; charset=UTF-8 Content-Type: application/json Here,
+	 * we are committing the entire transaction at once.
 	 */
-	 
-	public JsonObject createNodesWithLabel(List<JsonObject> dataList, List<String> labels, String uniqueAttribute) throws GraphDBException{
-		if(dataList == null || dataList.size() == 0){
+
+	public JsonObject createNodesWithLabel(List<JsonObject> dataList, List<String> labels, String uniqueAttribute)
+			throws GraphDBException {
+		if (dataList == null || dataList.size() == 0) {
 			return new JsonObject();
 		}
 		String cypherQuery = null;
 		String queryLabel = "";
-		for(String label : labels){
-			queryLabel += ":"+label;
+		for (String label : labels) {
+			queryLabel += ":" + label;
 		}
-		if(uniqueAttribute.trim().length() > 0){
-			cypherQuery = "MERGE (n"+queryLabel+" {"+uniqueAttribute+":{props}."+uniqueAttribute+"}) ON CREATE SET n={props} RETURN n";
-			//MERGE (n:SCM:GIT {ScmRevisionNumber:{props}.ScmRevisionNumber}  ) ON CREATE SET n={props} RETURN n
-		}else{
-			cypherQuery = "CREATE (n"+queryLabel+" {props}) return n";
+		if (uniqueAttribute.trim().length() > 0) {
+			cypherQuery = "MERGE (n" + queryLabel + " {" + uniqueAttribute + ":{props}." + uniqueAttribute
+					+ "}) ON CREATE SET n={props} RETURN n";
+			// MERGE (n:SCM:GIT {ScmRevisionNumber:{props}.ScmRevisionNumber} ) ON CREATE
+			// SET n={props} RETURN n
+		} else {
+			cypherQuery = "CREATE (n" + queryLabel + " {props}) return n";
 		}
 		JsonObject requestJson = buildRequestJson(dataList, cypherQuery);
 		ClientResponse response = doCommitCall(requestJson);
-		if(response.getStatus() != 200){
+		if (response.getStatus() != 200) {
 			throw new GraphDBException(response);
 		}
 		return buildResponseJson(response);
 	}
-	
+
 	/**
 	 * @param dataList
 	 * @param labels
@@ -79,12 +79,13 @@ public class Neo4jDBHandler {
 	 * @return JsonObject
 	 * @throws GraphDBException
 	 */
-	public JsonObject bulkCreateNodes(List<JsonObject> dataList, List<String> labels, String cypherQuery) throws GraphDBException{
-		if(dataList == null || dataList.size() == 0 || cypherQuery == null || cypherQuery.trim().length() == 0){
+	public JsonObject bulkCreateNodes(List<JsonObject> dataList, List<String> labels, String cypherQuery)
+			throws GraphDBException {
+		if (dataList == null || dataList.size() == 0 || cypherQuery == null || cypherQuery.trim().length() == 0) {
 			return new JsonObject();
 		}
 		JsonArray props = new JsonArray();
-		for(JsonObject data : dataList){
+		for (JsonObject data : dataList) {
 			props.add(data);
 		}
 		JsonObject statement = getCreateCypherQueryStatement(props, cypherQuery);
@@ -93,15 +94,15 @@ public class Neo4jDBHandler {
 		statementArray.add(statement);
 		requestJson.add("statements", statementArray);
 		ClientResponse response = doCommitCall(requestJson);
-		if(response.getStatus() != 200){
+		if (response.getStatus() != 200) {
 			throw new GraphDBException(response);
 		}
 		return buildResponseJson(response);
 	}
-	
-	public JsonObject bulkCreateCorrelations(List<String> correlationCyphers) throws GraphDBException{
+
+	public JsonObject bulkCreateCorrelations(List<String> correlationCyphers) throws GraphDBException {
 		JsonArray statementArray = new JsonArray();
-		for(String cypherQuery : correlationCyphers) {
+		for (String cypherQuery : correlationCyphers) {
 			JsonObject statement = new JsonObject();
 			statement.addProperty("statement", cypherQuery);
 			statementArray.add(statement);
@@ -109,31 +110,29 @@ public class Neo4jDBHandler {
 		JsonObject requestJson = new JsonObject();
 		requestJson.add("statements", statementArray);
 		ClientResponse response = doCommitCall(requestJson);
-		if(response.getStatus() != 200){
+		if (response.getStatus() != 200) {
 			throw new GraphDBException(response);
 		}
 		return buildResponseJson(response);
 	}
-	
+
 	/**
 	 * @param cypherQuery
 	 * @param dataList
 	 * @return JsonObject
 	 * @throws GraphDBException
 	 */
-	public JsonObject executeQueryWithData(String cypherQuery, List<JsonObject> dataList) throws GraphDBException{
-		if(dataList == null || dataList.size() == 0){
+	public JsonObject executeQueryWithData(String cypherQuery, List<JsonObject> dataList) throws GraphDBException {
+		if (dataList == null || dataList.size() == 0) {
 			return new JsonObject();
-		}		
+		}
 		JsonObject requestJson = buildRequestJson(dataList, cypherQuery);
 		ClientResponse response = doCommitCall(requestJson);
-		if(response.getStatus() != 200){
+		if (response.getStatus() != 200) {
 			throw new GraphDBException(response);
 		}
 		return buildResponseJson(response);
 	}
-	
-
 
 	/**
 	 * @param label
@@ -141,30 +140,30 @@ public class Neo4jDBHandler {
 	 * 
 	 * @throws GraphDBException
 	 */
-	public NodeData fetchTrackingNode(String label) throws GraphDBException{
+	public NodeData fetchTrackingNode(String label) throws GraphDBException {
 		JsonObject requestJson = new JsonObject();
 		JsonArray statementArray = new JsonArray();
 		JsonObject statement = new JsonObject();
-		statement.addProperty("statement", "MATCH (n"+label+") return n");
+		statement.addProperty("statement", "MATCH (n" + label + ") return n");
 		statementArray.add(statement);
 		requestJson.add("statements", statementArray);
 		ClientResponse response = doCommitCall(requestJson);
-		if(response.getStatus() != 200){
+		if (response.getStatus() != 200) {
 			throw new GraphDBException(response);
 		}
 		List<NodeData> processGraphDBNode = parser.processGraphDBNode(response.getEntity(String.class)).getNodes();
-		if(processGraphDBNode.size() == 0){
+		if (processGraphDBNode.size() == 0) {
 			processGraphDBNode = createTrackingNode(label);
 		}
 		return processGraphDBNode.get(0);
 	}
-	
+
 	/**
 	 * @param query
 	 * @return GraphResponse
 	 * @throws GraphDBException
 	 */
-	public GraphResponse executeCypherQuery(String query) throws GraphDBException{
+	public GraphResponse executeCypherQuery(String query) throws GraphDBException {
 		JsonObject requestJson = new JsonObject();
 		JsonArray statementArray = new JsonArray();
 		JsonObject statement = new JsonObject();
@@ -174,38 +173,39 @@ public class Neo4jDBHandler {
 		resultDataContents.add("row");
 		resultDataContents.add("graph");
 		statement.add("resultDataContents", resultDataContents);
-		
+
 		requestJson.add("statements", statementArray);
 		ClientResponse response = doCommitCall(requestJson);
-		if(response.getStatus() != 200){
+		if (response.getStatus() != 200) {
 			throw new GraphDBException(response);
 		}
 		return parser.processGraphDBNode(response.getEntity(String.class));
 	}
-	
+
 	/**
 	 * @param queryJson
 	 * @return String
 	 */
-	public String executeCypherQueryRaw(String queryJson){
+	public String executeCypherQueryRaw(String queryJson) {
 		JsonObject requestJson = new JsonParser().parse(queryJson).getAsJsonObject();
 		ClientResponse response = doCommitCall(requestJson);
 		return response.getEntity(String.class);
 	}
-	
-	
+
 	/**
 	 * @param query
 	 * @param count
 	 * @return GraphResponse
 	 * @throws GraphDBException
 	 */
-	public GraphResponse executeCypherQueryMultiple(String query, int count) throws GraphDBException{
+	public GraphResponse executeCypherQueryMultiple(String[] queriesArray) throws GraphDBException {
 		JsonObject requestJson = new JsonObject();
 		JsonArray statementArray = new JsonArray();
 		JsonObject statement = null;
 		JsonArray resultDataContents = null;
-		for(int i=0; i<count; i++){
+		int count = queriesArray.length;
+		for (int i = 0; i < count; i++) {
+			String query = queriesArray[i];
 			statement = new JsonObject();
 			statement.addProperty("statement", query);
 			resultDataContents = new JsonArray();
@@ -216,12 +216,11 @@ public class Neo4jDBHandler {
 		}
 		requestJson.add("statements", statementArray);
 		ClientResponse response = doCommitCall(requestJson);
-		if(response.getStatus() != 200){
+		if (response.getStatus() != 200) {
 			throw new GraphDBException(response);
 		}
 		return parser.processGraphDBNode(response.getEntity(String.class));
 	}
-
 
 	/**
 	 * @param label
@@ -233,17 +232,16 @@ public class Neo4jDBHandler {
 		jsonObj.addProperty("TRACKING_ID", "");
 		ArrayList<JsonObject> dataList = new ArrayList<JsonObject>();
 		dataList.add(jsonObj);
-		String cypherQuery = "CREATE (n"+label+" {props}) return n";
+		String cypherQuery = "CREATE (n" + label + " {props}) return n";
 		JsonObject requestJson = buildRequestJson(dataList, cypherQuery);
 		ClientResponse response = doCommitCall(requestJson);
-		if(response.getStatus() != 200){
+		if (response.getStatus() != 200) {
 			throw new GraphDBException(response);
 		}
 		List<NodeData> processGraphDBNode = parser.processGraphDBNode(response.getEntity(String.class)).getNodes();
 		return processGraphDBNode;
 	}
-	
-	
+
 	/**
 	 * @param label
 	 * @param updatedTrackingId
@@ -254,17 +252,16 @@ public class Neo4jDBHandler {
 		JsonObject jsonObj = new JsonObject();
 		ArrayList<JsonObject> dataList = new ArrayList<JsonObject>();
 		dataList.add(jsonObj);
-		String cypherQuery = "match(n"+label+") SET n.TRACKING_ID = '"+updatedTrackingId+"'  return n";
+		String cypherQuery = "match(n" + label + ") SET n.TRACKING_ID = '" + updatedTrackingId + "'  return n";
 		JsonObject requestJson = buildRequestJson(dataList, cypherQuery);
 		ClientResponse response = doCommitCall(requestJson);
-		if(response.getStatus() != 200){
+		if (response.getStatus() != 200) {
 			throw new GraphDBException(response);
 		}
 		List<NodeData> processGraphDBNode = parser.processGraphDBNode(response.getEntity(String.class)).getNodes();
 		return processGraphDBNode;
 	}
-	
-	
+
 	/**
 	 * @param response
 	 * @return JsonObject
@@ -275,11 +272,10 @@ public class Neo4jDBHandler {
 		return responseJson;
 	}
 
-
 	private JsonObject buildRequestJson(List<JsonObject> dataList, String cypherQuery) {
 		JsonObject requestJson = new JsonObject();
 		JsonArray statementArray = new JsonArray();
-		for(JsonObject data : dataList){
+		for (JsonObject data : dataList) {
 			JsonObject statement = getCreateCypherQueryStatement(data, cypherQuery);
 			statementArray.add(statement);
 		}
@@ -287,38 +283,40 @@ public class Neo4jDBHandler {
 		return requestJson;
 	}
 
-
 	/**
 	 * @param requestJson
 	 * @return ClientResponse
 	 */
 	private ClientResponse doCommitCall(JsonObject requestJson) {
 		WebResource resource = Client.create()
-				//.resource("http://localhost:7474/db/data/transaction/commit");
-				.resource(ApplicationConfigProvider.getInstance().getGraph().getEndpoint()+"/db/data/transaction/commit");
-		ClientResponse response = resource.accept( MediaType.APPLICATION_JSON ).header("Authorization", ApplicationConfigProvider.getInstance().getGraph().getAuthToken())
-		//ClientResponse response = resource.accept( MediaType.APPLICATION_JSON ).header("Authorization", "Basic bmVvNGo6YWRtaW4=")
-				.type(MediaType.APPLICATION_JSON)
-				.entity(requestJson.toString())
-				.post(ClientResponse.class);
+				// .resource("http://localhost:7474/db/data/transaction/commit");
+				.resource(ApplicationConfigProvider.getInstance().getGraph().getEndpoint()
+						+ "/db/data/transaction/commit");
+		ClientResponse response = resource.accept(MediaType.APPLICATION_JSON)
+				.header("Authorization", ApplicationConfigProvider.getInstance().getGraph().getAuthToken())
+				// ClientResponse response = resource.accept( MediaType.APPLICATION_JSON
+				// ).header("Authorization", "Basic bmVvNGo6YWRtaW4=")
+				.type(MediaType.APPLICATION_JSON).entity(requestJson.toString()).post(ClientResponse.class);
 		return response;
 	}
-	
+
 	/**
 	 * Load the available field indices in Neo4J
+	 * 
 	 * @return
 	 */
 	public JsonArray loadFieldIndices() {
 		WebResource resource = Client.create()
-				.resource(ApplicationConfigProvider.getInstance().getGraph().getEndpoint()+"/db/data/schema/index");
-		ClientResponse response = resource.accept( MediaType.APPLICATION_JSON ).header("Authorization", ApplicationConfigProvider.getInstance().getGraph().getAuthToken())
-				.type(MediaType.APPLICATION_JSON)
-				.get(ClientResponse.class);
+				.resource(ApplicationConfigProvider.getInstance().getGraph().getEndpoint() + "/db/data/schema/index");
+		ClientResponse response = resource.accept(MediaType.APPLICATION_JSON)
+				.header("Authorization", ApplicationConfigProvider.getInstance().getGraph().getAuthToken())
+				.type(MediaType.APPLICATION_JSON).get(ClientResponse.class);
 		return new JsonParser().parse(response.getEntity(String.class)).getAsJsonArray();
 	}
 
 	/**
 	 * Add the field index for give label and field
+	 * 
 	 * @param label
 	 * @param field
 	 * @return
@@ -328,15 +326,14 @@ public class Neo4jDBHandler {
 		JsonArray properties = new JsonArray();
 		properties.add(field);
 		requestJson.add("property_keys", properties);
-		WebResource resource = Client.create()
-				.resource(ApplicationConfigProvider.getInstance().getGraph().getEndpoint()+"/db/data/schema/index/"+label);
-		ClientResponse response = resource.accept( MediaType.APPLICATION_JSON ).header("Authorization", ApplicationConfigProvider.getInstance().getGraph().getAuthToken())
-				.type(MediaType.APPLICATION_JSON)
-				.entity(requestJson.toString())
-				.post(ClientResponse.class);
+		WebResource resource = Client.create().resource(
+				ApplicationConfigProvider.getInstance().getGraph().getEndpoint() + "/db/data/schema/index/" + label);
+		ClientResponse response = resource.accept(MediaType.APPLICATION_JSON)
+				.header("Authorization", ApplicationConfigProvider.getInstance().getGraph().getAuthToken())
+				.type(MediaType.APPLICATION_JSON).entity(requestJson.toString()).post(ClientResponse.class);
 		return new JsonParser().parse(response.getEntity(String.class)).getAsJsonObject();
 	}
-	
+
 	/**
 	 * @param data
 	 * @param cypherQuery

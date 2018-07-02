@@ -16,13 +16,6 @@
     "type": "REST"
   },
   "responseTemplate": {
-    "deploymentInfo": {
-      "applicationName": "applicationName",
-      "status": "status",
-      "deploymentId": "deploymentId",
-      "createTime": "createTime",
-      "deploymentGroupName": "deploymentGroupName"
-      }
   },
   "useResponseTemplate" : false,
   "token" : "APITOKEN",
